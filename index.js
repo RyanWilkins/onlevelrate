@@ -310,7 +310,7 @@ const get_diagonal_splits = (bottom_range, top_range, split_points, height, effe
          c = top_points[i+1].law_change
          d = bottom_points[i+1].law_change
 
-
+        //blah
         //console.log(i,a,b,c,d)
 
         if(a&&b&&c&&d || !a&&!b&&!c&&!d){
