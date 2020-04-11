@@ -1,0 +1,26 @@
+
+
+body {
+  margin: 30px 30px 30px 30px ;
+  background: #EEE;
+}
+
+.dashboard {
+  min-width:700px;
+  max-width: 1500px;
+  margin: auto;
+  overflow:hidden;
+}
+
+.actuarial-triangle{
+  opacity: 50%;
+}
+
+svg {
+
+  border: 1px solid;
+}
+
+text {
+  font-family: sans-serif;
+}
