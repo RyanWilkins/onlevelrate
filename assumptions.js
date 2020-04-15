@@ -8,17 +8,27 @@ const viewboxDim = {minx:"0", miny:"0", width:"100", height:"50"};
 ** Temporary assumptions that allow for debugging
 */
 let rate_years = [2011, 2012,2013]
-let year_type = ["cy", "py"]
+let year_type = "py"
 
 const start_date = moment([rate_years[0], "-01-01"].join(), "YYYY-MM-DD")
 const end_date = moment([rate_years[rate_years.length-1]+1,"-01-01"].join(), "YYYY-MM-DD")
 
-const increase_one = moment("2012-1-02", "YYYY-MM-DD")
+const start_date_two = moment([rate_years[0], "-01-02"].join(), "YYYY-MM-DD")
+// TODO:
+// If we have law changes on the same day it crashes due to vertical lines
+
+const increase_one = moment("2015-01-01", "YYYY-MM-DD")
 const increase_two = moment("2012-5-01", "YYYY-MM-DD")
-const increase_three = moment("2011-9-01", "YYYY-MM-DD")
-const law_change_date = moment("2011-11-01", "YYYY-MM-DD")
-const law_change_date_two = moment("2012-1-01", "YYYY-MM-DD")
+const increase_three = moment("2011-6-01", "YYYY-MM-DD")
+const increase_four = moment("2010-10-01", "YYYY-MM-DD")
+const law_change_date = moment("2012-5-01", "YYYY-MM-DD")
+const law_change_date_two = moment("2011-8-05", "YYYY-MM-DD")
 const policy_length_days = 365
+
+var py_borders = [
+                    {date: start_date, value: 0, law_change:false},
+                    {date: end_date, value: 0, law_change:false}
+]
 
 var rate_changes = 
                 [
@@ -26,7 +36,8 @@ var rate_changes =
                     { date: increase_two, value: 0.10, law_change: false},
                     { date: increase_three, value: 0.07, law_change: false},
                     { date: law_change_date, value: -0.05, law_change: true},
-                    { date: law_change_date_two, value: 0.10, law_change: true}
+                    { date: law_change_date_two, value: 0.10, law_change: true},
+                    { date: increase_four, value: 0.01, law_change:false}
                 ]
 
 /*
@@ -59,5 +70,5 @@ const section_height = graphicWidth/(rate_years.length+1)
 const numberFormat = d3.format(",.4r")
 const yearColorScheme = d3.schemeAccent
 
-// epsilon for floating point error toleration
-let epsilon = 0.00000001;
+// fudge factor to keep graphics aligned
+let epsilon = 0.001;

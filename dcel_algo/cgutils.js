@@ -125,7 +125,17 @@ cgutils.intersectLines = function(l1, l2){
     x = -l2.c/l2.a;
     y = (-l1.c-l1.a*x)/l1.b;
   }else if(l1.b!=0 && l2.b!=0){
+    /* -------------- ADDED BY ME ----------------
+    ** Currently y is returning signed 0 if the line goes through the origin
+    ** we want to convert that to zero
+    */
     y = (l2.c*l1.a-l1.c*l2.a)/(l1.b*l2.a-l2.b*l1.a);
+
+    // added check 
+    y = (y === undefined)
+              ? 0
+              :y
+              
     x = (-l1.c-l1.b*y)/l1.a;
   }else{
     alert("ERROR: try to intersect two vertical lines. intersectLines failed.")

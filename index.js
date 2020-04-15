@@ -18,7 +18,7 @@ const render = (selection, ry_objects, year_type, rate_changes) => {
     const graphicGroup = selection.append('g')
             .attr('class', 'graphic')
             // move the whole graphic
-            .attr('transform', `translate(${0},${0})`)
+            .attr('transform', `translate(${(year_type == "cy") ? section_height/2 : 0},${0})`)
 
     // Group for rendering the boxes repenting years
     const rateYearGroup = graphicGroup.selectAll('.rygraphic')
@@ -71,14 +71,14 @@ const render = (selection, ry_objects, year_type, rate_changes) => {
     */
     var bottom_range = [timeRangeScale.range()[0], timeRangeScale.range()[1]]
 
-    /* do we still need the top range...
+    // if policy year, the top range will be shifted
     if (year_type == "cy"){
         var top_range = bottom_range;
     }
     else if (year_type == "py") {
         var top_range = [bottom_range[0], bottom_range[1] + graphicWidth/(rate_years.length+1)]
         var bottom_range = [bottom_range[0], bottom_range[1] + graphicWidth/(rate_years.length+1)]
-    }*/
+    }
 
     // determines where on the graphic the rate changes start
     //const split_points = rate_changes.map((d) => ({value:timeRangeScale(d.date - start_date), law_change: d.law_change}))
@@ -87,14 +87,24 @@ const render = (selection, ry_objects, year_type, rate_changes) => {
     const scaled_length = getTimeX(start_date, false, policy_length_days)- margin.left
 
     // Return the rate changes as lines in form a + b + y = 0
-    const line_list = get_line_list(rate_changes, scaled_length, section_height, start_date)
+    var lines_to_get = rate_changes
+    //lines_to_get.push(py_borders[0])
+    var lines_to_get = (year_type == "py")
+                            ? [...rate_changes, ...py_borders]
+                            : rate_changes
+
+    //console.log(lines_to_get)
+
+
+    const line_list = get_line_list(lines_to_get, scaled_length, section_height, start_date)
     
     // bounds of the graphic for constructing the DCEL
-    var bounds = {xmin: bottom_range[0], xmax: bottom_range[1], ymin: 0, ymax:section_height}
-    
+    var bounds = {xmin: bottom_range[0], xmax: top_range[1], ymin: 0, ymax:section_height}
     // Uses a DCEL to get a list of all faces (source in HTML)
     // Then iterates through the linked list to return as list of Vertex
     var overlay_faces = construct_faces(bounds, line_list)
+
+    //console.log(overlay_faces)
 
     // Need to redefine these for new data structure
     /*
@@ -126,6 +136,7 @@ const render = (selection, ry_objects, year_type, rate_changes) => {
     const overlay_group = graphicGroup.selectAll(".overlays")
         .data(overlay_faces)
 
+    console.log(overlay_faces)
     const overlay_enter = overlay_group.enter()
     //const get_overlay_stroke = (d) =>
     overlay_enter
@@ -138,8 +149,9 @@ const render = (selection, ry_objects, year_type, rate_changes) => {
             .attr("stroke", "black")
             .attr("opacity", "0.4")
             //.attr("stroke", d => get_overlay_stroke(d))
-            .attr("stroke-width", "0.4")
-            .attr('points', d => d.map(q => [q.x,q.y].join(" ")))
+            .attr("stroke-width", "0.8")
+            .attr("points", d => d.faceString()) 
+            //.attr('points', d => d.map(q => [q.x,q.y].join(" ")))
             //.attr('points', [[0,10], [10,20], [30,40], [20,0], ""])
     
     //const path_example = [[0,10], [10,20], [30,40], [20,0]]
@@ -182,12 +194,16 @@ const render = (selection, ry_objects, year_type, rate_changes) => {
         //console.log(d);
     });*/
     
+    d3.selectAll(".overlays").each((d,i) =>{
+        //console.log(d.path);
+        //console.log(d.path.map(q => [q.x,q.y]))
+        console.log(i,d.upper_left)
+    })
     overlay_enter
             .append('text')
-                .attr("x", d => d3.polygonCentroid(d.map(q => [q.x,q.y]))[0])
-                .attr("y", d => d3.polygonCentroid(d.map(q => [q.x,q.y]))[1] + graphicDimensions.lowerLefty - section_height)
-                //.text(d => )
-                .text("123")
+                .attr("x", d => d3.polygonCentroid(d.faceString())[0])
+                .attr("y", d => d3.polygonCentroid(d.faceString())[1] + graphicDimensions.lowerLefty - section_height)
+                .text((d,i) => i)
                 .attr("font-size", "0.2em")
                 .attr("dy", "0.32em")
                 .attr("text-anchor", "middle")
@@ -196,4 +212,4 @@ const render = (selection, ry_objects, year_type, rate_changes) => {
 
 
 
-render(svg, myRYs, "cy", rate_changes);
+render(svg, myRYs, year_type, rate_changes);

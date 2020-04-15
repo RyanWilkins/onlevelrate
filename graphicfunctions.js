@@ -54,12 +54,12 @@ const getTimeX = (date, law_change, policy_length) => {
 **     easy way to do this is order based on x-coord first,
 **     then where two faces have the same x go bottoms up
 */
-function overlayFace (vertex, next) {
-    this.vertex = vertex;
-    this.next = next;
+function overlayFace (path, upper_left) {
+    this.path = path;
+    this.upper_left = upper_left;
 }
 
-overlayFace.prototype.faceString =  function(){
+/*overlayFace.prototype.faceString =  function(){
     var to_return = [this.vertex];
     var current_node = this;
     while(current_node.next !== null){
@@ -67,13 +67,18 @@ overlayFace.prototype.faceString =  function(){
         to_return.push(current_node.vertex);
     };
     return to_return.map(d => [d.x, d.y]).join(" ");
+}*/
+
+overlayFace.prototype.faceString = function(){
+    //console.log(this)
+    return this.path.map(d => [d.x,d.y])
 }
 
 const test_of = () => {
     var face = new overlayFace({x:0, y:1}, null);
     var face2 = new overlayFace({x:0, y:1}, null);
     face.next = face2
-    return (face.faceString())
+    return (face.faceString(","))
 }
 
 
@@ -126,11 +131,21 @@ const sort_points_clockwise = (points) => {
 ** Functions to create overlay using DCEL 
 */
 
+const face_top_left = (face) => {
+    var min_x = Math.min(...(face.map(d => d.x)));
+
+    var min_points = face.filter(d => d.x == min_x);
+    var min_y = Math.min(...(min_points.map(d => d.y)));
+
+    return([min_x,min_y])
+}
+
 // Final function which outputs the final list of faces
 // TODO: create face objects instead of just a list
 const retrieve_faces = (line_arrangement) => {
     var faceDLL = line_arrangement.dcel.listFace.head;
     var face_list = []
+    var face_objects = []
     while(faceDLL !== null){
         var current_list = []
         var edge_tracker = []
@@ -142,10 +157,18 @@ const retrieve_faces = (line_arrangement) => {
             current_edge = current_edge.next;
         }
         face_list.push(current_list);
+
+        next_face = new overlayFace(current_list, face_top_left(current_list))
+        face_objects.push(next_face)
+
         faceDLL = faceDLL.next;
+
+        //console.log(next_face.faceString())
+
     }
 
-    return face_list;
+    //console.log(face_objects)
+    return face_objects;
 }
 
 // loops through the DCEL alogorithm given the graphic bounds
@@ -153,7 +176,7 @@ const retrieve_faces = (line_arrangement) => {
 const construct_faces = (bounds, lines) => {
     my_dcel = new DCEL();
 
-    my_dcel.constructBoundingBox(bounds.xmin, bounds.xmax, bounds.ymin, bounds.ymax)
+    my_dcel.constructBoundingBox(bounds.xmin-epsilon, bounds.xmax+epsilon, bounds.ymin, bounds.ymax)
 
     my_la = new LineArrangement(my_dcel)
 
@@ -180,7 +203,12 @@ const construct_faces = (bounds, lines) => {
     }
 
     var faces = retrieve_faces(my_la)
-    faces = faces.filter(d => d.length>0)
+    faces = faces.filter(d => d.path.length >0)
+
+    faces.sort(function (x,y) { return x.upper_left[0] - y.upper_left[0] || x.upper_left[1] - y.upper_left[1]; })
+
+    console.log(faces)
+
     return faces
 
 }
@@ -194,7 +222,9 @@ const get_line_list = (rate_changes, scaled_length, height, start_date) => {
     // TODO: if rate change is outside the range, we should limit the range
     // currently breaks if outside range
     for(i = 0; i < rate_changes.length; i++){
-        var x_0 = timeRangeScale(rate_changes[i].date - start_date)
+        // adjust x by a little bit to avoid perfectly vertical lines
+        // TODO: too hacky, need actual fix
+        var x_0 = timeRangeScale(rate_changes[i].date - start_date) 
         var y_1 = 0
         var y_0 = height
         if (rate_changes[i].law_change){
@@ -204,13 +234,13 @@ const get_line_list = (rate_changes, scaled_length, height, start_date) => {
             var x_1 = x_0 + scaled_length;
         }
 
-        console.log(x_0, y_0, x_1, y_1)
-        console.log(scaled_length)
+        //console.log(x_0, y_0, x_1, y_1)
+        //console.log(scaled_length)
         var a = y_1 - y_0 
         var b = x_0 - x_1 
         var c = y_0 * x_1 - y_1 * x_0
 
-        output_lines.push(cgutils.Line(a,b,c))
+        output_lines.push(cgutils.Line(a,b,c)) 
     }
     return output_lines
 }
