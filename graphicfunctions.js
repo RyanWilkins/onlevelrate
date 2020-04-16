@@ -30,17 +30,24 @@ const yearColorScale = d3.scaleOrdinal()
 // Maps the dates in the range of interest to the graphic X position
 const timeRangeScale = d3.scaleLinear()
         .domain([start_date, end_date])
+        //.domain([0, end_date.diff(start_date, 'days')])
         .range([margin.left, section_height*(rate_years.length)+margin.left])
+
+// fix floating point errors in the time scale
+const timeRangeScaleTrunc = (my_date) => {
+    var to_return = Math.floor(timeRangeScale(my_date)*1000000)/1000000;
+    return to_return;
+}
 
 // Instead of adjusting by start date each time can use this function
 // TODO: Can we get rid of start_date since everything is already shifted by it
 const getTimeX = (date, law_change, policy_length) => {
     if (law_change) {
-        return timeRangeScale(date);
+        return timeRangeScaleTrunc(date);
     }
     temp_date = date.clone()
     temp_date.add(policy_length, 'day')
-    return timeRangeScale(temp_date)
+    return timeRangeScaleTrunc(temp_date)
 }
 
 /*
@@ -50,13 +57,13 @@ const getTimeX = (date, law_change, policy_length) => {
 // needs access to yearXScale
 // first argument is the top right x coord of a face
 const cumu_rate = (top_right, bottom_left, rate_changes) => {
-    console.log(top_right)
+    //console.log(bottom_left)
     var x_coord = top_right[0]
     var y_coord = top_right[1]
     // get rate changes which have "passed"
     // where end_date earlier than x_coord of top_right 
-    var applicable_rates = rate_changes.filter(d => ((x_coord - timeRangeScale(d.end_date)) > epsilon));
-    var unused_rates = rate_changes.filter(d => ((timeRangeScale(d.end_date) - x_coord) > epsilon));
+    var applicable_rates = rate_changes.filter(d => ((x_coord - timeRangeScaleTrunc(d.end_date)) > epsilon));
+    var unused_rates = rate_changes.filter(d => ((timeRangeScaleTrunc(d.end_date) - x_coord) > epsilon));
     var factors = applicable_rates.map(d => d.factor);
     var to_return = factors.reduce((a,b) => a*b,1)
 
@@ -64,15 +71,24 @@ const cumu_rate = (top_right, bottom_left, rate_changes) => {
     // is chopped due to a straight line
     if (y_coord > 0){
         var x_search = bottom_left[0]
-        var new_app_rates = unused_rates.filter(d => (x_search - timeRangeScale(d.effective_date) > -epsilon));
+        var new_app_rates = unused_rates.filter(d => (x_search - timeRangeScaleTrunc(d.effective_date) > -epsilon));
         
         // if the face is "floating" in the middle (split by two diags and two verticals)
         // have to remove the last rate change that doesn't apply
+        //console.log(section_height - bottom_left[1])
+        //console.log(Math.abs(section_height - bottom_left[1]) > epsilon)
         if (Math.abs(section_height - bottom_left[1]) > epsilon){
             console.log(counter)
             counter = counter + 1
-            var max_rc_x = Math.max(...new_app_rates.map(d => timeRangeScale(d.effective_date)))
-            new_app_rates = new_app_rates.filter(d => (Math.abs(max_rc_x - timeRangeScale(d.effective_date)<epsilon)))
+            //var max_rc_x = Math.max(...new_app_rates.map(d => timeRangeScaleTrunc(d.effective_date)))
+            //new_app_rates = new_app_rates.filter(d => (Math.abs(max_rc_x - timeRangeScaleTrunc(d.effective_date)>epsilon)))
+            var y_height = section_height - bottom_left[1]
+            var x_max = bottom_left[0] - y_height
+            //console.log(y_height, x_max, new_app_rates.map(d=> timeRangeScaleTrunc(d.effective_date)))
+            console.log(x_max)
+            new_app_rates = new_app_rates.filter(d => (x_max - timeRangeScaleTrunc(d.effective_date)) > epsilon)
+            //console.log(new_app_rates.length)
+            //return "f"
         }
         
         to_return = [to_return, ...new_app_rates.map(d=>d .factor)].reduce((a,b) => a*b,1)
@@ -273,6 +289,7 @@ const construct_faces = (bounds, lines) => {
 
     //faces.sort(function (x,y) { return ((x.upper_left[0] - y.upper_left[0]) < epsilon) || (x.upper_left[1] - y.upper_left[1]); })
 
+    // Something is still not 100% correct with this... floating point?
     faces.sort(
         function(a,b){ return (Math.abs(a.upper_left[0] - b.upper_left[0]) < epsilon) ? a.upper_left[1] - b.upper_left[1] : a.upper_left[0] - b.upper_left[0]}
         );
@@ -294,7 +311,7 @@ const get_line_list = (rate_changes, scaled_length, height) => {
     for(i = 0; i < rate_changes.length; i++){
         // adjust x by a little bit to avoid perfectly vertical lines
         // TODO: too hacky, need actual fix
-        var x_0 = timeRangeScale(rate_changes[i].effective_date) 
+        var x_0 = timeRangeScaleTrunc(rate_changes[i].effective_date) 
         var y_1 = 0
         var y_0 = height
         if (rate_changes[i].law_change){

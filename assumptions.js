@@ -86,5 +86,5 @@ const numberFormat = d3.format(".0f")
 const yearColorScheme = d3.schemeAccent
 
 // fudge factor to keep graphics aligned
-let epsilon = 0.001;
+let epsilon = 0.01;
 let counter = 0;

@@ -64,7 +64,7 @@ const render = (selection, ry_objects, year_type, rate_changes) => {
             .attr("y1", graphicDimensions.lowerLefty - section_height)
             .attr("y2", graphicDimensions.lowerLefty)
             .attr("x1", d => getTimeX(d.effective_date, d.law_change, policy_length_days))
-            .attr("x2", d => timeRangeScale(d.effective_date))
+            .attr("x2", d => timeRangeScaleTrunc(d.effective_date))
             
     /*
     ** functions for rendering shapes overtop 
@@ -81,7 +81,7 @@ const render = (selection, ry_objects, year_type, rate_changes) => {
     }
 
     // determines where on the graphic the rate changes start
-    //const split_points = rate_changes.map((d) => ({value:timeRangeScale(d.date), law_change: d.law_change}))
+    //const split_points = rate_changes.map((d) => ({value:timeRangeScaleTrunc(d.date), law_change: d.law_change}))
     
     // how long is a policy once scaled to yearTimeScale
     const scaled_length = getTimeX(start_date, false, policy_length_days)- margin.left
