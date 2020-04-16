@@ -63,8 +63,8 @@ const render = (selection, ry_objects, year_type, rate_changes) => {
             .attr("stroke-linecap", "round")
             .attr("y1", graphicDimensions.lowerLefty - section_height)
             .attr("y2", graphicDimensions.lowerLefty)
-            .attr("x1", d => getTimeX(d.date, d.law_change, policy_length_days))
-            .attr("x2", d => timeRangeScale(d.date - start_date))
+            .attr("x1", d => getTimeX(d.effective_date, d.law_change, policy_length_days))
+            .attr("x2", d => timeRangeScale(d.effective_date - start_date))
             
     /*
     ** functions for rendering shapes overtop 
@@ -103,6 +103,8 @@ const render = (selection, ry_objects, year_type, rate_changes) => {
     // Uses a DCEL to get a list of all faces (source in HTML)
     // Then iterates through the linked list to return as list of Vertex
     var overlay_faces = construct_faces(bounds, line_list)
+    overlay_faces.map(d => d.fillCumuRate(rate_changes))
+    console.log(overlay_faces)
 
     //console.log(overlay_faces)
 
@@ -136,7 +138,7 @@ const render = (selection, ry_objects, year_type, rate_changes) => {
     const overlay_group = graphicGroup.selectAll(".overlays")
         .data(overlay_faces)
 
-    console.log(overlay_faces)
+    //console.log(overlay_faces)
     const overlay_enter = overlay_group.enter()
     //const get_overlay_stroke = (d) =>
     overlay_enter
@@ -197,13 +199,14 @@ const render = (selection, ry_objects, year_type, rate_changes) => {
     d3.selectAll(".overlays").each((d,i) =>{
         //console.log(d.path);
         //console.log(d.path.map(q => [q.x,q.y]))
-        console.log(i,d.upper_left)
+        //console.log(i,d.upper_left)
     })
     overlay_enter
             .append('text')
                 .attr("x", d => d3.polygonCentroid(d.faceString())[0])
                 .attr("y", d => d3.polygonCentroid(d.faceString())[1] + graphicDimensions.lowerLefty - section_height)
-                .text((d,i) => i)
+                .text(d => d.cumu_rate)
+                //.text((d,i) => i)
                 .attr("font-size", "0.2em")
                 .attr("dy", "0.32em")
                 .attr("text-anchor", "middle")
@@ -212,4 +215,4 @@ const render = (selection, ry_objects, year_type, rate_changes) => {
 
 
 
-render(svg, myRYs, year_type, rate_changes);
+render(svg, myRYs, year_type, other_rate_changes);

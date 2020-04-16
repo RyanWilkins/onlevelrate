@@ -21,8 +21,8 @@ const increase_one = moment("2015-01-01", "YYYY-MM-DD")
 const increase_two = moment("2012-5-01", "YYYY-MM-DD")
 const increase_three = moment("2011-6-01", "YYYY-MM-DD")
 const increase_four = moment("2010-10-01", "YYYY-MM-DD")
-const law_change_date = moment("2012-5-01", "YYYY-MM-DD")
-const law_change_date_two = moment("2011-8-05", "YYYY-MM-DD")
+const law_change_date = moment("2011-6-01", "YYYY-MM-DD")
+const law_change_date_two = moment("2012-8-05", "YYYY-MM-DD")
 const policy_length_days = 365
 
 var py_borders = [
@@ -30,7 +30,7 @@ var py_borders = [
                     {date: end_date, value: 0, law_change:false}
 ]
 
-var rate_changes = 
+/*var rate_changes = 
                 [
                     { date: increase_one, value: 0.05, law_change: false},
                     { date: increase_two, value: 0.10, law_change: false},
@@ -38,7 +38,18 @@ var rate_changes =
                     { date: law_change_date, value: -0.05, law_change: true},
                     { date: law_change_date_two, value: 0.10, law_change: true},
                     { date: increase_four, value: 0.01, law_change:false}
-                ]
+                ]*/
+
+var other_rate_changes = [
+    new RateChange(increase_one, 0.05, false, 1),
+    new RateChange(increase_two, 0.10, false, 1),
+    new RateChange(increase_three, 0.07, false, 1),
+    new RateChange(law_change_date, -0.05, true, 1),
+    new RateChange(law_change_date_two, 0.10, true, 1),
+    new RateChange(increase_four, 0.01, false, 1),
+]
+
+//console.log(other_rate_changes.map(d=> [d.start_date, d.law_change, d.end_date]))
 
 /*
 ** Variables that define the Dashboard area and graphic area

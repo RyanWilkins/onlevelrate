@@ -44,6 +44,21 @@ const getTimeX = (date, law_change, policy_length) => {
 }
 
 /*
+** Function to find the appropriate cumulative rate factor for a face
+*/
+
+// needs access to yearXScale
+// first argument is the top right x coord of a face
+const cumu_rate = (x_coord, rate_changes) => {
+    var applicable_rates = rate_changes.filter(d => (timeRangeScale(d.end_date-start_date) < x_coord));
+    var factors = applicable_rates.map(d => d.factor);
+    var to_return = factors.reduce((a,b) => a*b,1)
+
+    return to_return
+}
+
+
+/*
 ** Overlay Face object
 ** 
 */
@@ -54,9 +69,12 @@ const getTimeX = (date, law_change, policy_length) => {
 **     easy way to do this is order based on x-coord first,
 **     then where two faces have the same x go bottoms up
 */
-function overlayFace (path, upper_left) {
+
+// upper left/upper right should be turned into prototypes
+function overlayFace (path, upper_left, upper_right) {
     this.path = path;
     this.upper_left = upper_left;
+    this.upper_right = upper_right;
 }
 
 /*overlayFace.prototype.faceString =  function(){
@@ -72,6 +90,10 @@ function overlayFace (path, upper_left) {
 overlayFace.prototype.faceString = function(){
     //console.log(this)
     return this.path.map(d => [d.x,d.y])
+}
+
+overlayFace.prototype.fillCumuRate = function(rcs){
+    this.cumu_rate = cumu_rate(this.upper_right[0], rcs)
 }
 
 const test_of = () => {
@@ -140,6 +162,15 @@ const face_top_left = (face) => {
     return([min_x,min_y])
 }
 
+const face_top_right = (face) => {
+    var max_x = Math.max(...(face.map(d => d.x)));
+
+    var max_points = face.filter(d => d.x == max_x);
+    var min_y = Math.min(...(max_points.map(d => d.y)));
+
+    return([max_x,min_y])
+}
+
 // Final function which outputs the final list of faces
 // TODO: create face objects instead of just a list
 const retrieve_faces = (line_arrangement) => {
@@ -158,7 +189,7 @@ const retrieve_faces = (line_arrangement) => {
         }
         face_list.push(current_list);
 
-        next_face = new overlayFace(current_list, face_top_left(current_list))
+        next_face = new overlayFace(current_list, face_top_left(current_list), face_top_right(current_list))
         face_objects.push(next_face)
 
         faceDLL = faceDLL.next;
@@ -167,7 +198,7 @@ const retrieve_faces = (line_arrangement) => {
 
     }
 
-    //console.log(face_objects)
+    console.log(face_objects)
     return face_objects;
 }
 
@@ -207,7 +238,7 @@ const construct_faces = (bounds, lines) => {
 
     faces.sort(function (x,y) { return x.upper_left[0] - y.upper_left[0] || x.upper_left[1] - y.upper_left[1]; })
 
-    console.log(faces)
+    //console.log(faces)
 
     return faces
 
@@ -224,7 +255,7 @@ const get_line_list = (rate_changes, scaled_length, height, start_date) => {
     for(i = 0; i < rate_changes.length; i++){
         // adjust x by a little bit to avoid perfectly vertical lines
         // TODO: too hacky, need actual fix
-        var x_0 = timeRangeScale(rate_changes[i].date - start_date) 
+        var x_0 = timeRangeScale(rate_changes[i].effective_date - start_date) 
         var y_1 = 0
         var y_0 = height
         if (rate_changes[i].law_change){
@@ -244,3 +275,5 @@ const get_line_list = (rate_changes, scaled_length, height, start_date) => {
     }
     return output_lines
 }
+
+
