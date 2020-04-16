@@ -29,18 +29,18 @@ const yearColorScale = d3.scaleOrdinal()
 
 // Maps the dates in the range of interest to the graphic X position
 const timeRangeScale = d3.scaleLinear()
-        .domain([0, end_date-start_date])
+        .domain([start_date, end_date])
         .range([margin.left, section_height*(rate_years.length)+margin.left])
 
 // Instead of adjusting by start date each time can use this function
 // TODO: Can we get rid of start_date since everything is already shifted by it
 const getTimeX = (date, law_change, policy_length) => {
     if (law_change) {
-        return timeRangeScale(date - start_date);
+        return timeRangeScale(date);
     }
     temp_date = date.clone()
     temp_date.add(policy_length, 'day')
-    return timeRangeScale(temp_date-start_date)
+    return timeRangeScale(temp_date)
 }
 
 /*
@@ -49,10 +49,34 @@ const getTimeX = (date, law_change, policy_length) => {
 
 // needs access to yearXScale
 // first argument is the top right x coord of a face
-const cumu_rate = (x_coord, rate_changes) => {
-    var applicable_rates = rate_changes.filter(d => (timeRangeScale(d.end_date-start_date) < x_coord));
+const cumu_rate = (top_right, bottom_left, rate_changes) => {
+    console.log(top_right)
+    var x_coord = top_right[0]
+    var y_coord = top_right[1]
+    // get rate changes which have "passed"
+    // where end_date earlier than x_coord of top_right 
+    var applicable_rates = rate_changes.filter(d => ((x_coord - timeRangeScale(d.end_date)) > epsilon));
+    var unused_rates = rate_changes.filter(d => ((timeRangeScale(d.end_date) - x_coord) > epsilon));
     var factors = applicable_rates.map(d => d.factor);
     var to_return = factors.reduce((a,b) => a*b,1)
+
+    // find rate changes which have started but not finished, but the face
+    // is chopped due to a straight line
+    if (y_coord > 0){
+        var x_search = bottom_left[0]
+        var new_app_rates = unused_rates.filter(d => (x_search - timeRangeScale(d.effective_date) > -epsilon));
+        
+        // if the face is "floating" in the middle (split by two diags and two verticals)
+        // have to remove the last rate change that doesn't apply
+        if (Math.abs(section_height - bottom_left[1]) > epsilon){
+            console.log(counter)
+            counter = counter + 1
+            var max_rc_x = Math.max(...new_app_rates.map(d => timeRangeScale(d.effective_date)))
+            new_app_rates = new_app_rates.filter(d => (Math.abs(max_rc_x - timeRangeScale(d.effective_date)<epsilon)))
+        }
+        
+        to_return = [to_return, ...new_app_rates.map(d=>d .factor)].reduce((a,b) => a*b,1)
+    }
 
     return to_return
 }
@@ -71,10 +95,11 @@ const cumu_rate = (x_coord, rate_changes) => {
 */
 
 // upper left/upper right should be turned into prototypes
-function overlayFace (path, upper_left, upper_right) {
+function overlayFace (path, upper_left, upper_right, bottom_left) {
     this.path = path;
     this.upper_left = upper_left;
     this.upper_right = upper_right;
+    this.bottom_left = bottom_left;
 }
 
 /*overlayFace.prototype.faceString =  function(){
@@ -93,7 +118,7 @@ overlayFace.prototype.faceString = function(){
 }
 
 overlayFace.prototype.fillCumuRate = function(rcs){
-    this.cumu_rate = cumu_rate(this.upper_right[0], rcs)
+    this.cumu_rate = cumu_rate(this.upper_right, this.bottom_left, rcs)
 }
 
 const test_of = () => {
@@ -154,12 +179,21 @@ const sort_points_clockwise = (points) => {
 */
 
 const face_top_left = (face) => {
-    var min_x = Math.min(...(face.map(d => d.x)));
+    var min_x = Math.min(...(face.map(d => Math.floor(d.x*1000000)/1000000)));
 
     var min_points = face.filter(d => d.x == min_x);
     var min_y = Math.min(...(min_points.map(d => d.y)));
 
     return([min_x,min_y])
+}
+
+const face_bottom_left = (face) => {
+    var min_x = Math.min(...(face.map(d => d.x)));
+
+    var min_points = face.filter(d => d.x == min_x);
+    var max_y = Math.max(...(min_points.map(d => d.y)));
+
+    return([min_x,max_y])
 }
 
 const face_top_right = (face) => {
@@ -189,7 +223,7 @@ const retrieve_faces = (line_arrangement) => {
         }
         face_list.push(current_list);
 
-        next_face = new overlayFace(current_list, face_top_left(current_list), face_top_right(current_list))
+        next_face = new overlayFace(current_list, face_top_left(current_list), face_top_right(current_list), face_bottom_left(current_list))
         face_objects.push(next_face)
 
         faceDLL = faceDLL.next;
@@ -235,8 +269,13 @@ const construct_faces = (bounds, lines) => {
 
     var faces = retrieve_faces(my_la)
     faces = faces.filter(d => d.path.length >0)
+    //console.log(...faces.map((d,i) => [i, d.upper_left]))
 
-    faces.sort(function (x,y) { return x.upper_left[0] - y.upper_left[0] || x.upper_left[1] - y.upper_left[1]; })
+    //faces.sort(function (x,y) { return ((x.upper_left[0] - y.upper_left[0]) < epsilon) || (x.upper_left[1] - y.upper_left[1]); })
+
+    faces.sort(
+        function(a,b){ return (Math.abs(a.upper_left[0] - b.upper_left[0]) < epsilon) ? a.upper_left[1] - b.upper_left[1] : a.upper_left[0] - b.upper_left[0]}
+        );
 
     //console.log(faces)
 
@@ -247,7 +286,7 @@ const construct_faces = (bounds, lines) => {
 // Convert lines from two points to a + b + c = 0 format
 // then return in list
 // TODO: isn't really reuseable... only for this dashboard
-const get_line_list = (rate_changes, scaled_length, height, start_date) => {
+const get_line_list = (rate_changes, scaled_length, height) => {
     var output_lines = [];
 
     // TODO: if rate change is outside the range, we should limit the range
@@ -255,7 +294,7 @@ const get_line_list = (rate_changes, scaled_length, height, start_date) => {
     for(i = 0; i < rate_changes.length; i++){
         // adjust x by a little bit to avoid perfectly vertical lines
         // TODO: too hacky, need actual fix
-        var x_0 = timeRangeScale(rate_changes[i].effective_date - start_date) 
+        var x_0 = timeRangeScale(rate_changes[i].effective_date) 
         var y_1 = 0
         var y_0 = height
         if (rate_changes[i].law_change){

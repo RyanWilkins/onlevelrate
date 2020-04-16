@@ -20,9 +20,11 @@ const start_date_two = moment([rate_years[0], "-01-02"].join(), "YYYY-MM-DD")
 const increase_one = moment("2015-01-01", "YYYY-MM-DD")
 const increase_two = moment("2012-5-01", "YYYY-MM-DD")
 const increase_three = moment("2011-6-01", "YYYY-MM-DD")
-const increase_four = moment("2010-10-01", "YYYY-MM-DD")
-const law_change_date = moment("2011-6-01", "YYYY-MM-DD")
+const increase_four = moment("2012-1-01", "YYYY-MM-DD")
+const increase_five = moment("2012-7-01", "YYYY-MM-DD")
+const law_change_date = moment("2012-12-01", "YYYY-MM-DD")
 const law_change_date_two = moment("2012-8-05", "YYYY-MM-DD")
+const law_change_date_three = moment("2012-10-01", "YYYY-MM-DD")
 const policy_length_days = 365
 
 var py_borders = [
@@ -41,12 +43,14 @@ var py_borders = [
                 ]*/
 
 var other_rate_changes = [
-    new RateChange(increase_one, 0.05, false, 1),
-    new RateChange(increase_two, 0.10, false, 1),
-    new RateChange(increase_three, 0.07, false, 1),
-    new RateChange(law_change_date, -0.05, true, 1),
-    new RateChange(law_change_date_two, 0.10, true, 1),
-    new RateChange(increase_four, 0.01, false, 1),
+    new RateChange(increase_one, 1, false, 1),
+    new RateChange(increase_two,1, false, 1),
+    new RateChange(increase_three, 1, false, 1),
+    new RateChange(law_change_date, 1, true, 1),
+    new RateChange(law_change_date_two, 1, true, 1),
+    new RateChange(increase_four, 1, false, 1),
+    new RateChange(law_change_date_three, 1, true, 1),
+    new RateChange(increase_five, 1, false, 1)
 ]
 
 //console.log(other_rate_changes.map(d=> [d.start_date, d.law_change, d.end_date]))
@@ -78,8 +82,9 @@ const section_height = graphicWidth/(rate_years.length+1)
 ** Graphical Formatting and Color Options
 */
 // TODO: Number formatting should be dynamic
-const numberFormat = d3.format(",.4r")
+const numberFormat = d3.format(".0f")
 const yearColorScheme = d3.schemeAccent
 
 // fudge factor to keep graphics aligned
 let epsilon = 0.001;
+let counter = 0;
