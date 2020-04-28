@@ -1,3 +1,122 @@
+
+/**
+ ** Define the area that holds the dashboard
+ */
+const viewboxDim = {minx:"0", miny:"0", width:"100", height:"50"};
+
+/*
+** Temporary assumptions that allow for debugging
+*/
+let rate_years = [2011, 2012,2013,2014,2015]
+let year_type = "cy"
+
+const start_date = moment([rate_years[0], "-01-01"].join(), "YYYY-MM-DD")
+const end_date = moment([rate_years[rate_years.length-1]+1,"-01-01"].join(), "YYYY-MM-DD")
+
+const start_date_two = moment([rate_years[0], "-01-02"].join(), "YYYY-MM-DD")
+// TODO:
+// If we have law changes on the same day it crashes due to vertical lines
+
+const increase_one = moment("2015-01-01", "YYYY-MM-DD")
+const increase_two = moment("2012-5-01", "YYYY-MM-DD")
+const increase_three = moment("2012-6-01", "YYYY-MM-DD")
+const increase_four = moment("2011-1-01", "YYYY-MM-DD")
+const increase_five = moment("2012-7-01", "YYYY-MM-DD")
+const law_change_date = moment("2012-12-01", "YYYY-MM-DD")
+const law_change_date_two = moment("2012-8-05", "YYYY-MM-DD")
+const law_change_date_three = moment("2012-10-01", "YYYY-MM-DD")
+const policy_length_days = 365
+
+var py_borders = [
+                    {date: start_date, value: 0, law_change:false},
+                    {date: end_date, value: 0, law_change:false}
+]
+
+/*var rate_changes = 
+                [
+                    { date: increase_one, value: 0.05, law_change: false},
+                    { date: increase_two, value: 0.10, law_change: false},
+                    { date: increase_three, value: 0.07, law_change: false},
+                    { date: law_change_date, value: -0.05, law_change: true},
+                    { date: law_change_date_two, value: 0.10, law_change: true},
+                    { date: increase_four, value: 0.01, law_change:false}
+                ]*/
+
+var other_rate_changes = [
+    new RateChange(increase_one, 1, false, 1)
+    /*new RateChange(increase_two,0.1, false, 1),
+    new RateChange(increase_three, 0.15, false, 1),
+    new RateChange(law_change_date, 0.07, true, 1),
+    new RateChange(law_change_date_two, -0.05, true, 1),
+    new RateChange(increase_four, 0.02, false, 1),
+    new RateChange(law_change_date_three, 0.2, true, 1),
+    new RateChange(increase_five, -0.15, false, 1)*/
+]
+
+other_rate_changes.sort((a,b) => a.effective_date - b.effective_date)
+
+//console.log(other_rate_changes.map(d=> [d.start_date, d.law_change, d.end_date]))
+
+/*
+** Variables that define the Dashboard area and graphic area
+*/
+
+/* Height and width of the dashboard */
+const viewboxDimString = viewboxDim.minx.concat(" ", viewboxDim.miny, " ",
+viewboxDim.width, " ", viewboxDim.height);
+const height = +viewboxDim.height;
+const width = +viewboxDim.width;
+
+/* Margin between the dashboard and the graphic, and defining graphic dimendsions */
+const margin = {top:20, bottom: 15, right: 2, left: 2};
+const graphicDimensions = {upperLeftx: margin.left, upperLefty: margin.top,
+                upperRightx: width - margin.right, upperRighty: margin.top,
+                lowerLeftx: margin.left, lowerLefty: height - margin.bottom};
+const graphicHeight = graphicDimensions.lowerLefty - graphicDimensions.upperLefty;
+const graphicWidth = graphicDimensions.upperRightx - graphicDimensions.upperLeftx;
+
+// TODO: This is currently fixed and based on the provided assumptions
+// May not need to change depending on how input is structured
+const section_height = graphicWidth/(rate_years.length+1)
+
+
+/*
+** Graphical Formatting and Color Options
+*/
+// TODO: Number formatting should be dynamic
+const numberFormat = d3.format(".3f")
+const percentFormat = d3.format("+.1%")
+//const yearColorScheme = d3.schemeAccent
+const yearColorScheme = ["#4e79a7","#f28e2c","#e15759","#76b7b2","#59a14f","#edc949","#af7aa1","#ff9da7","#9c755f","#bab0ab"]
+
+// fudge factor to keep graphics aligned
+let epsilon = 0.01;
+let counter = 0;
+
+
+
+
+/*
+** d3 Scales for graphics
+*/
+
+// Maps the points where each year start
+const yearXScale = d3.scaleLinear()
+    .domain([Math.min(...rate_years), Math.max(...rate_years)+2])
+    .range([margin.left, section_height*(rate_years.length+1)+margin.left])
+
+const yearColorScale = d3.scaleOrdinal()
+    .domain(rate_years)
+    .range(yearColorScheme)
+
+// Maps the dates in the range of interest to the graphic X position
+const timeRangeScale = d3.scaleLinear()
+        .domain([start_date, end_date])
+        //.domain([0, end_date.diff(start_date, 'days')])
+        .range([margin.left, section_height*(rate_years.length)+margin.left])
+
+
+
 // Main Rate Change dashboard d3 functions
 
 // define the selection for the dashboard
@@ -79,8 +198,6 @@ const render = (selection, ry_objects, year_type, rate_changes) => {
                             ? [...rate_changes, ...py_borders]
                             : rate_changes
 
-    //console.log(lines_to_get)
-
 
     const line_list = get_line_list(lines_to_get, scaled_length, section_height, start_date)
     
@@ -90,46 +207,7 @@ const render = (selection, ry_objects, year_type, rate_changes) => {
     // Then iterates through the linked list to return as list of Vertex
     var overlay_faces = construct_faces(bounds, line_list)
     overlay_faces.map(d => d.fillCumuRate(rate_changes))
-    //console.log(overlay_faces)
 
-    //console.log(overlay_faces)
-
-    // Need to redefine these for new data structure
-    /*
-    const get_overlay_fill = (d) =>{
-        if (typeof d.shape_color != "undefined"){
-            return d.shape_color;
-        }
-        return "grey"
-    }
-
-    const get_overlay_opacity = (d) =>{
-        if (typeof d.shape_color != "undefined"){
-            return 1;
-        }
-        return 0
-    }
-
-    const get_overlay_stroke = (d) => {
-        if(typeof d.shape_color != "undefined"){
-            return d.shape_color
-        }
-        return "grey"
-    }
-    */
-
-    var all_years = ry_objects.map(d => d.year)
-    var year_paths = all_years.map(d => {
-        return {"year": d, "year_path" :[
-            [yearXScale(d),section_height],
-            [yearXScale(d+1),section_height],
-            [getUpperLeftCorner(d + 1, year_type),0],
-            [getUpperLeftCorner(d, year_type),0]
-            ]}
-    })
-
-
-    console.log("blah")
     const yt = 2015
     const year_path = [
     [yearXScale(yt),section_height],
@@ -139,13 +217,7 @@ const render = (selection, ry_objects, year_type, rate_changes) => {
     ]
     //console.log(year_path)
 
-    var my_sims = year_paths.map(d => {
-        return sim_rate(d.year_path, overlay_faces)
-    })
-
-    console.log(my_sims)
-
-    /*var my_sim = sim_rate_scan([yearXScale(yt), section_height, getUpperLeftCorner(yt + 1, year_type), 0], year_path, overlay_faces)
+    var my_sim = sim_rate_scan([yearXScale(yt), section_height, getUpperLeftCorner(yt + 1, year_type), 0], year_path, overlay_faces)
 
     console.log(my_sim)
     console.log(Math.round(my_sim*100000)/100000)
@@ -153,7 +225,7 @@ const render = (selection, ry_objects, year_type, rate_changes) => {
     var my_sim2 = sim_rate([yearXScale(yt), section_height, getUpperLeftCorner(yt + 1, year_type), 0], year_path, overlay_faces)
 
     console.log(my_sim2)
-    console.log(Math.round(my_sim2*100000)/100000)*/
+    console.log(Math.round(my_sim2*100000)/100000)
 
     /*
     ** Drawing the overlay on top

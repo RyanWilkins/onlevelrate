@@ -78,20 +78,20 @@ const cumu_rate = (top_right, bottom_left, rate_changes) => {
         //console.log(section_height - bottom_left[1])
         //console.log(Math.abs(section_height - bottom_left[1]) > epsilon)
         if (Math.abs(section_height - bottom_left[1]) > epsilon){
-            console.log(counter)
+            //console.log(counter)
             counter = counter + 1
             //var max_rc_x = Math.max(...new_app_rates.map(d => timeRangeScaleTrunc(d.effective_date)))
             //new_app_rates = new_app_rates.filter(d => (Math.abs(max_rc_x - timeRangeScaleTrunc(d.effective_date)>epsilon)))
             var y_height = section_height - bottom_left[1]
             var x_max = bottom_left[0] - y_height
             //console.log(y_height, x_max, new_app_rates.map(d=> timeRangeScaleTrunc(d.effective_date)))
-            console.log(x_max)
+            //console.log(x_max)
             new_app_rates = new_app_rates.filter(d => (x_max - timeRangeScaleTrunc(d.effective_date)) > epsilon)
             //console.log(new_app_rates.length)
             //return "f"
         }
         
-        to_return = [to_return, ...new_app_rates.map(d=>d .factor)].reduce((a,b) => a*b,1)
+        to_return = [to_return, ...new_app_rates.map(d=>d.factor)].reduce((a,b) => a*b,1)
     }
 
     return to_return
@@ -248,7 +248,7 @@ const retrieve_faces = (line_arrangement) => {
 
     }
 
-    console.log(face_objects)
+    //console.log(face_objects)
     return face_objects;
 }
 
